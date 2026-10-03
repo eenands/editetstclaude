@@ -1,18 +1,6 @@
 """Invariantes do motor de decisão (regras do briefing transformadas em testes)."""
-import pytest
-
 from conde.decision.curves import Key, evaluate
 from conde.decision.engine import CATEGORIES
-
-
-@pytest.fixture(scope="session")
-def timeline(synthetic, tmp_path_factory):
-    from conde.analysis.pipeline import analyze
-    from conde.config import load
-    from conde.decision.engine import decide
-    path, _ = synthetic
-    an = analyze(path, tmp_path_factory.mktemp("eng"), log=lambda *_: None)
-    return decide(an, load()), an
 
 
 def test_no_build_errors_and_valid_categories(timeline):

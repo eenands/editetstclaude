@@ -1,0 +1,6 @@
+{
+  "name": "conde-ae-tests",
+  "private": true,
+  "description": "Validação do JSX gerado: sintaxe ES3, mock do object model do AE e harness de expressions",
+  "devDependencies": { "acorn": "^8.11.0" }
+}

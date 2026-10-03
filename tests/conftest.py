@@ -37,3 +37,13 @@ def match(found, truth, tol):
     recall = hits / len(truth) if truth else 1.0
     precision = hits / len(found) if found else 1.0
     return precision, recall, errs
+
+
+@pytest.fixture(scope="session")
+def timeline(synthetic, tmp_path_factory):
+    from conde.analysis.pipeline import analyze
+    from conde.config import load
+    from conde.decision.engine import decide
+    path, _ = synthetic
+    an = analyze(path, tmp_path_factory.mktemp("eng"), log=lambda *_: None)
+    return decide(an, load()), an

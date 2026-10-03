@@ -5,3 +5,4 @@ __pycache__/
 /tests/fixtures/
 node_modules/
 *.aep
+tests/js/node_modules/
