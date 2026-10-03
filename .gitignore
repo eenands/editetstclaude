@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+/work/
+/tests/fixtures/
+node_modules/
+*.aep
