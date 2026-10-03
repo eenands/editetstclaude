@@ -1,0 +1,26 @@
+{
+ "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+ "cpus": 4,
+ "python": "3.11.15",
+ "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+ "ffprobe": true,
+ "node": "v22.22.0",
+ "libs": {
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "cv2": "4.10.0",
+  "PIL": "12.3.0",
+  "matplotlib": "3.11.2"
+ },
+ "ffmpeg_filters": {
+  "scdet": true,
+  "ebur128": true,
+  "silencedetect": true,
+  "minterpolate": true,
+  "signalstats": true
+ },
+ "ram_gb": 15.7,
+ "gpu_nvidia": false,
+ "after_effects": false,
+ "after_effects_note": "After Effects NÃO disponível neste ambiente: o JSX é gerado e validado (sintaxe ES3 + mock do object model), mas não executado no AE."
+}

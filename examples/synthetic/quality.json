@@ -1,0 +1,107 @@
+{
+ "quality": {
+  "repetition": {
+   "MICRO_SHAKE": 5,
+   "FLASH_PUNCH": 3,
+   "SHAKE_ONLY": 3,
+   "ZOOM_THROUGH": 2,
+   "ROT_KICK": 2,
+   "MICRO_SYNC": 2,
+   "PUNCH_SHAKE": 2,
+   "CHAR_CASCADE": 1,
+   "BLUR_HIT": 1,
+   "FLASH_CUT": 1,
+   "SPARK_BURST": 1,
+   "IMPACT": 1,
+   "LIGHT_BLOOM": 1,
+   "FREEZE_001": 1,
+   "HARD_CUT": 1,
+   "WORD_REVEAL": 1
+  },
+  "visual_density": {
+   "per_second_mean": 1.91,
+   "per_second_max": 4.0,
+   "band_share": {
+    "LOW": 0.198,
+    "MEDIUM": 0.11,
+    "HIGH": 0.583,
+    "EXTREME": 0.108
+   },
+   "corr_with_energy": 0.556
+  },
+  "breath": {
+   "zones": 2,
+   "share": 0.3,
+   "density_inside": 0.78
+  },
+  "pause_test": {
+   "longest_stacked_fx_s": 0.43,
+   "stacked_share": 0.048
+  },
+  "no_audio_test": {
+   "visual_events": 13,
+   "on_beat_grid": 1.0,
+   "ioi_mean_s": 0.917,
+   "ioi_cv": 0.307
+  },
+  "audio_only_test": {
+   "strong_audio_events": 13,
+   "represented_visually": 12,
+   "coverage": 0.923,
+   "missed_frames": [
+    360
+   ]
+  },
+  "silhouette": [
+   {
+    "layer": "TEXT_001",
+    "max_overlap_with_subject": 0.0
+   },
+   {
+    "layer": "TEXT_002",
+    "max_overlap_with_subject": 0.0
+   },
+   {
+    "layer": "TEXT_003",
+    "max_overlap_with_subject": 0.0
+   }
+  ],
+  "issues": []
+ },
+ "verify": {
+  "events_checked": 25,
+  "passed": 25,
+  "failed": [],
+  "inconclusive": [
+   {
+    "id": "EVT_022",
+    "recipe": "FLASH_PUNCH",
+    "checks": [
+     "zoom do punch já visível no frame do golpe"
+    ]
+   },
+   {
+    "id": "EVT_045",
+    "recipe": "FLASH_PUNCH",
+    "checks": [
+     "zoom do punch já visível no frame do golpe"
+    ]
+   }
+  ],
+  "unexpected_black_frames": [],
+  "strips": [
+   "verify_EVT_007_ZOOM_THROUGH.jpg",
+   "verify_EVT_012_FLASH_PUNCH.jpg",
+   "verify_EVT_014_BLUR_HIT.jpg",
+   "verify_EVT_016_ROT_KICK.jpg",
+   "verify_EVT_019_FLASH_CUT.jpg",
+   "verify_EVT_024_ZOOM_THROUGH.jpg",
+   "verify_EVT_028_SPARK_BURST.jpg",
+   "verify_EVT_031_PUNCH_SHAKE.jpg",
+   "verify_EVT_035_PUNCH_SHAKE.jpg",
+   "verify_EVT_038_FREEZE_001.jpg",
+   "verify_EVT_040_ROT_KICK.jpg",
+   "verify_EVT_045_FLASH_PUNCH.jpg"
+  ]
+ }
+}

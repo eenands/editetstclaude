@@ -1,0 +1,15 @@
+CONDE BUILD LOG — CONDE_EDIT v001
+After Effects mock | Sat Oct 03 2026 21:43:24 GMT+0000 (Coordinated Universal Time)
+camadas=40 efeitos=37 keys=2483 expressions=129 marcadores=53 falhas=0
+
+CHECKLIST (FASE 64)
+[x] resolução 1280x720
+[x] FPS 30
+[x] duração 480 frames
+[x] nenhum asset ausente
+[x] nenhuma expression quebrada (129 verificadas)
+[x] motion blur da comp ligado
+[x] áudio presente
+[x] nenhuma falha de construção
+
+[INFO] build em 0.0 s → /home/user/editetstclaude/examples/synthetic/ae/CONDE_EDIT_v001.aep

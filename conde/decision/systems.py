@@ -179,13 +179,18 @@ def light_events(eng):
         f = int(round(fl["frame"] * eng.fps / eng.src_fps)) if eng.mode != "dialogue" else eng.a2o(fl["frame"])
         if f is None or not eng.claim(["glow"], f - 1, f + eng.k30(10), "light"):
             continue
-        eng.add_keys("VFX_GLOW", "effect:GLOW:4", pulse(f, 2.5, 1, eng.k30(10), eng.fps))
+        # a luz respeita a cena: quanto mais a própria imagem já estoura, menos bloom se adiciona
+        sh = eng.shots_out[eng._shot_at(f)]
+        peak_luma = min(1.0, sh["luma"] + max(0.0, fl["luma_jump"]))
+        g = round(float(2.5 * np.clip(1.0 - peak_luma, 0.15, 1.0)), 2)
+        eng.add_keys("VFX_GLOW", "effect:GLOW:4", pulse(f, g, 1, eng.k30(10), eng.fps))
         eng.event("FLASH", f, f + eng.k30(10), recipe="LIGHT_BLOOM", action=["Glow acompanhando a luz da cena"],
                   detector=f"flash na própria imagem (salto de luma {fl['luma_jump']:+.2f}, não é corte)",
-                  params={"glow_intensity": [0, 2.5, 0], "threshold_pct": 72}, intensity=0.5,
+                  params={"glow_intensity": [0, g, 0], "threshold_pct": 72, "scene_peak_luma": round(peak_luma, 3)}, intensity=0.5,
                   easing="ataque 1 frame, decaimento exponencial", audio_sync=None,
                   dependencies=["VFX_GLOW"], priority=6,
-                  why="A luz já existe na cena: o bloom amplia o evento real em vez de inventar uma luz.",
+                  why="A luz já existe na cena: o bloom amplia o evento real em vez de inventar uma luz, "
+                      f"com ganho reduzido porque a imagem já chega a luma {peak_luma:.2f}.",
                   expected="Flash orgânico, coerente com a iluminação.")
 
 
@@ -227,7 +232,7 @@ def particles(eng):
         dx, dy = eng.an["motion_per_frame"]["dx"][si], eng.an["motion_per_frame"]["dy"][si]
         base = np.arctan2(dy, dx) if np.hypot(dx, dy) > 1 else -np.pi / 2
         rng = np.random.default_rng(eng.cfg["seed"] + f)
-        N = 26
+        N = 34
         groups = []
         life_max = 0
         col = eng.accent
@@ -235,7 +240,7 @@ def particles(eng):
             ang = base + rng.normal(0, 0.9) if rng.random() < 0.6 else rng.uniform(0, 2 * np.pi)
             sp = rng.uniform(300, 1100) * S
             life = rng.uniform(0.45, 0.9)
-            size = rng.uniform(4, 12) * S
+            size = rng.uniform(8, 22) * S
             life_max = max(life_max, life)
             vx, vy = sp * np.cos(ang), sp * np.sin(ang)
             mix = rng.uniform(0, 1)
@@ -253,7 +258,7 @@ def particles(eng):
         eng.event("PARTICLE", f, out, recipe="SPARK_BURST", action=["Explosão de partículas no sujeito"],
                   detector="/".join(sorted(c["types"])) + f" intensidade {c['intensity']}",
                   params={"count": N, "speed_px_s": [round(300 * S), round(1100 * S)], "gravity_px_s2": round(900 * S),
-                          "drag": 1.8, "life_s": [0.45, 0.9], "size_px": [round(4 * S, 1), round(12 * S, 1)],
+                          "drag": 1.8, "life_s": [0.45, 0.9], "size_px": [round(8 * S, 1), round(22 * S, 1)],
                           "direction_deg": round(float(np.degrees(base)), 1), "origin_px": [round(x), round(y)]},
                   intensity=c["intensity"], easing="física: arrasto exponencial + gravidade",
                   audio_sync={"type": "/".join(sorted(c["types"])), "frame": f, "offset_frames": 0},

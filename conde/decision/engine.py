@@ -94,16 +94,18 @@ class Engine:
         return None
 
     def claim(self, channels, a, b, owner):
+        """Reserva [a, b] FECHADO: janelas que só encostam também conflitam (o key final de uma
+        e o inicial da outra cairiam no mesmo frame da mesma propriedade)."""
         for ch in channels:
             for (x, y, _) in self.busy.get(ch, []):
-                if a < y and x < b:
+                if a <= y and x <= b:
                     return False
         for ch in channels:
             self.busy.setdefault(ch, []).append((a, b, owner))
         return True
 
     def free(self, ch, a, b):
-        return all(not (a < y and x < b) for (x, y, _) in self.busy.get(ch, []))
+        return all(not (a <= y and x <= b) for (x, y, _) in self.busy.get(ch, []))
 
     def layer(self, name, kind, **kw):
         if name not in self.layers:
@@ -401,6 +403,13 @@ class Engine:
             if made >= budget:
                 break
             a, b = s["out_start"] + edge, s["out_end"] - edge
+            # encolhe a janela para não encostar em outra janela de tempo (micro-sync/freeze):
+            # bordas compartilhadas apagariam o key de borda da janela vizinha
+            for (x, y, _) in self.busy.get("time", []):
+                if a <= x <= b:
+                    b = min(b, x - 2)
+                if a <= y <= b:
+                    a = max(a, y + 2)
             if b - a < self.fr(1.0) or not self.tm.free(a, b) or self._in_vocal(a, b):
                 continue
             if any(self.in_breath(f) for f in (a, (a + b) // 2, b - 1)):
@@ -758,7 +767,20 @@ class Engine:
             win = self.fr(2.0)
             n_near = sum(1 for x in accepted if abs(x - f) < win // 2)
             if n_near + 1 > bud[c["band"]] * 2.0 and not ({"DROP", "IMPACT", "ENTRY"} & c["types"]):
-                self.decisions.append({"system": "IMPACT", "frame": f, "decision": f"rejeitado: orçamento {c['band']}"})
+                micro = c["intensity"] >= 0.5 and not self.in_breath(f)
+                self.decisions.append({"system": "IMPACT", "frame": f, "decision": f"rejeitado: orçamento {c['band']}"
+                                       + (" → micro-shake (só representa o golpe)" if micro else "")})
+                if micro:
+                    amp = 2.0 * self.S
+                    self.markers["MARKERS_IMPACT"].append({"frame": f, "comment": self._shake_comment(amp, 12, 12, 0.0, 0, 0.0, f)})
+                    self.event("SHAKE", f, f + self.k30(5), detector="/".join(sorted(c["types"])) + " acima do orçamento da faixa",
+                               recipe="MICRO_SHAKE", action=["Micro-shake"], params={"shake_px": round(amp, 2)},
+                               intensity=0.2, easing="decaimento exponencial (expression)", scores=c["scores"],
+                               audio_sync={"type": "/".join(sorted(c["types"])), "frame": f, "offset_frames": 0},
+                               dependencies=["CAMERA_SHAKE", "MARKERS_IMPACT"], priority=6,
+                               why="Golpe forte, mas o orçamento de densidade da faixa já foi usado: um micro-shake "
+                                   "mantém o golpe visível sem somar mais um efeito pesado.",
+                               expected="Ritmo contínuo com hierarquia (golpes principais continuam maiores).")
                 continue
             if any(abs(f - x) <= 1 for x in trans_frames):
                 # a transição já ocupa a câmera: só reforço de shake sincronizado
@@ -799,7 +821,10 @@ class Engine:
         recipe = self._choose_recipe(tier, prev, f)
         attack = self.k30(2 if tier != "small" else 3)
         release = self.k30({"small": 7, "medium": 9, "large": 12}[tier])
-        a, b = f, f + attack + release
+        # FASE 40: o key de repouso fica em f-1 → no frame do golpe a imagem JÁ está em movimento
+        # (com o repouso em f, o primeiro frame visível do punch cairia 1–2 frames depois do kick)
+        k0 = f - 1
+        a, b = k0, k0 + attack + release
         chans = RECIPE_CHANNELS[recipe]
         free = [ch for ch in chans if self.free(ch, a - 1, b)]
         if "zoom" not in free:
@@ -818,16 +843,17 @@ class Engine:
         params, actions, deps = {}, [], []
         if recipe != "SHAKE_ONLY":
             self.claim([ch for ch in chans if ch in free], a - 1, b, f"impact{f}")
-            k = punch(f, 100.0, 100.0 + scale, attack, release, self.fps)
+            k = punch(k0, 100.0, 100.0 + scale, attack, release, self.fps)
             self.add_keys("CAMERA_ZOOM", "transform.scale", [Key(q.f, [q.v, q.v], q.in_speed, q.out_speed, q.in_infl, q.out_infl,
                                                                  q.interp_in, q.interp_out) for q in k])
             params["scale"] = [100.0, round(100 + scale, 2), round(100 + 0.12 * scale, 2), 100.0]
+            params["scale_key_frames"] = [int(q.f) for q in k]
             actions.append("Scale Punch")
             deps.append("CAMERA_ZOOM.scale")
         if recipe == "ROT_KICK" and "rot" in free:
             sgn = 1 if self.rng.random() > 0.5 else -1
             r_amt = sgn * max(rot * 2.0, 0.8)
-            self.add_keys("CAMERA_ROTATION", "transform.rotation", punch(f, 0.0, r_amt, attack, release, self.fps, settle_ratio=-0.25))
+            self.add_keys("CAMERA_ROTATION", "transform.rotation", punch(k0, 0.0, r_amt, attack, release, self.fps, settle_ratio=-0.25))
             params["rotation_deg"] = [0, round(r_amt, 2), round(-0.25 * r_amt, 2), 0]
             actions.append("Rotation Kick")
             deps.append("CAMERA_ROTATION.rotation")
@@ -840,25 +866,25 @@ class Engine:
             deps.append("VFX_FLASH")
         if recipe == "BLUR_HIT" and "dirblur" in free:
             ae_dir = (mdir + 90) % 180
-            self.add_keys("VFX_DIRBLUR", "effect:DIRBLUR:ADBE Motion Blur-0002", pulse(f, blur * 1.6, 1, self.k30(6), self.fps))
-            self.add_keys("VFX_DIRBLUR", "effect:DIRBLUR:ADBE Motion Blur-0001", [Key(f, ae_dir, interp_in="HOLD", interp_out="HOLD")])
+            self.add_keys("VFX_DIRBLUR", "effect:DIRBLUR:ADBE Motion Blur-0002", pulse(k0, blur * 1.6, 1, self.k30(6), self.fps))
+            self.add_keys("VFX_DIRBLUR", "effect:DIRBLUR:ADBE Motion Blur-0001", [Key(k0, ae_dir, interp_in="HOLD", interp_out="HOLD")])
             params["dir_blur_px"] = [0, round(blur * 1.6, 1), 0]
             params["dir_blur_angle_ae"] = round(ae_dir, 1)
             actions.append("Directional Blur")
             deps.append("VFX_DIRBLUR")
         if recipe == "DISTORT_HIT" and "distort" in free:
             name = f"VFX_DISTORT_{f:05d}"
-            self.layer(name, "adjustment", **{"in": f, "out": b, "comment": "Distorção curta acompanhando o golpe", "group": "VFX/DISTORTION"})
+            self.layer(name, "adjustment", **{"in": k0, "out": b, "comment": "Distorção curta acompanhando o golpe", "group": "VFX/DISTORTION"})
             self.effect(name, "ADBE Turbulent Displace", "DISPLACE", {"2": 0.0, "3": 60.0 * self.S, "5": 1.0})
-            self.add_keys(name, "effect:DISPLACE:2", pulse(f, 45 * inten, 1, b - f - 1, self.fps))
+            self.add_keys(name, "effect:DISPLACE:2", pulse(k0, 45 * inten, 1, b - k0 - 1, self.fps))
             self.layers[name]["expressions"]["effect:DISPLACE:2"] = "value * " + _k("VFX_INTENSITY")
             params["displace_amount"] = [0, round(45 * inten, 1), 0]
             actions.append("Turbulent Distortion")
             deps.append(name)
         if recipe == "RGB_HIT" and "rgb" in free:
             px = 14 * self.S * inten
-            self.slider_keys("CTRL_VFX", "RGB_SPLIT_PX", pulse(f, px, 1, self.k30(6), self.fps))
-            self._rgb_instance(f, f + self.k30(7))
+            self.slider_keys("CTRL_VFX", "RGB_SPLIT_PX", pulse(k0, px, 1, self.k30(6), self.fps))
+            self._rgb_instance(k0, f + self.k30(7))
             params["rgb_px"] = [0, round(px, 1), 0]
             actions.append("RGB Split")
             deps.append("VFX_RGB_SPLIT")

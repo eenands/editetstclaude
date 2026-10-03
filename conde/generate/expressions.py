@@ -48,7 +48,7 @@ if (Mk.numKeys > 0) {{
   }}
 }}
 ox += amb * N(time * 1.3, 3.1); oy += amb * N(time * 1.3, 7.7);
-add(value, [ox * g, oy * g]);"""
+value.length > 2 ? add(value, [ox * g, oy * g, 0]) : add(value, [ox * g, oy * g]);"""
 
 
 def shake_rotation_js():
@@ -157,4 +157,4 @@ def rgb_offset_js(sign):
     return (f'var px = comp("MASTER_EDIT").layer("CTRL_VFX").effect("RGB_SPLIT_PX")(1) * '
             f'comp("MASTER_EDIT").layer("CTRL_MASTER").effect("GLOBAL_INTENSITY")(1) * '
             f'comp("MASTER_EDIT").layer("CTRL_MASTER").effect("VFX_INTENSITY")(1);\n'
-            f"add(value, [{sign} * px, 0]);")
+            f"value.length > 2 ? add(value, [{sign} * px, 0, 0]) : add(value, [{sign} * px, 0]);")

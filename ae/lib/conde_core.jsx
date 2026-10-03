@@ -482,7 +482,7 @@ var CONDE = (function () {
     function CONDE_RGB_EXPR(sign) {
         return "var c = comp(\"MASTER_EDIT\");\nvar px = c.layer(\"CTRL_VFX\").effect(\"RGB_SPLIT_PX\")(1) * " +
             "c.layer(\"CTRL_MASTER\").effect(\"GLOBAL_INTENSITY\")(1) * c.layer(\"CTRL_MASTER\").effect(\"VFX_INTENSITY\")(1);\n" +
-            "add(value, [" + sign + " * px, 0]);";
+            "value.length > 2 ? add(value, [" + sign + " * px, 0, 0]) : add(value, [" + sign + " * px, 0]);";
     }
 
     // ------------------------------------------------------------- verificação (FASE 64)

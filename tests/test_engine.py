@@ -66,7 +66,8 @@ def test_audio_sync_events_on_marker_frames(timeline):
         s = e.get("audio_sync") or {}
         if e["category"] in ("PUNCH", "FLASH", "BLUR", "DISTORTION", "VFX") and s.get("type") not in (None, "none"):
             assert any(abs(s["frame"] - x) <= 1 for x in fr), e["id"]
-            assert e["start_frame"] == s["frame"]
+            # pré-roll de 1 frame: o key de repouso fica em f-1 para o golpe já estar visível em f
+            assert e["start_frame"] in (s["frame"] - 1, s["frame"]), e["id"]
 
 
 def test_text_inside_safe_area_and_off_subject(timeline):
@@ -77,3 +78,13 @@ def test_text_inside_safe_area_and_off_subject(timeline):
     for L in texts:
         x0, y0, x1, y1 = L["text"]["box_px"]
         assert 0.05 * W <= x0 and x1 <= 0.95 * W and 0.05 * H <= y0 and y1 <= 0.95 * H, (L["name"], L["text"]["box_px"])
+
+
+def test_time_windows_exist_and_never_touch(timeline):
+    """Regressão: rampas não podem sumir por encostar em micro-sync/freeze, nem compartilhar borda."""
+    tl, _ = timeline
+    wins = sorted(tl["precomps"]["PRE_SOURCE_REMAP"]["windows"], key=lambda w: w["start_frame"])
+    kinds = {w["kind"] for w in wins}
+    assert {"SPEED_RAMP", "MICRO_SYNC", "FREEZE"} <= kinds, kinds
+    for a, b in zip(wins, wins[1:]):
+        assert a["end_frame"] < b["start_frame"], (a["id"], b["id"])
